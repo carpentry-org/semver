@@ -1,0 +1,46 @@
+(deftype Semver [major Int, minor Int, patch Int, tag String])
+
+(defmodule Semver
+  (defn from-string [s]
+    (do
+      ; TODO: clean error
+      (assert (> (String.count-char s \.) 1))
+      (let [split (String.split-by s &[\.])
+            major (Int.from-string (Array.nth &split 0))
+            minor (Int.from-string (Array.nth &split 1))
+            trail (String.join @"." &(Array.suffix-array &split 2))
+            idx (Pattern.find #"[^0-9]" &trail)
+            patch-str (if (> idx -1) (String.prefix-string &trail idx) @&trail)
+            patch (Int.from-string &patch-str)
+            tag (if (> idx -1) (String.suffix-string &trail idx) @"")]
+          (Semver.init major minor patch tag))))
+
+  (defn zero []
+    (Semver.init 0 0 0 @""))
+
+  (defn str [s]
+    (fmt "Semver(%d.%d.%d%s)" @(major s) @(minor s) @(patch s) (tag s)))
+
+  (defn = [a b]
+    (and*
+      (= (major a) (major b))
+      (= (minor a) (minor b))
+      (= (patch a) (patch b))
+      (= (tag a) (tag b))))
+
+  (defn /= [a b] (not (Semver.= a b)))
+
+  (defn < [a b]
+    (if (< (major a) (major b))
+      true
+      (if (< (minor a) (minor b))
+        true
+        (< (patch a) (patch b)))))
+
+  (defn > [a b]
+    (if (> (major a) (major b))
+      true
+      (if (> (minor a) (minor b))
+        true
+        (> (patch a) (patch b)))))
+)
