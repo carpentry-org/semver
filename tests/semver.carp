@@ -63,5 +63,4 @@
                 &(Semver.init 1 2 3 @"-tag")
                 "semantic versions can be compared with > III"
                 >
-    )
-    (print-test-results test)))
+    )))
