@@ -2,7 +2,7 @@
 
 (load "semver.carp")
 
-(use-all Semver Test)
+(use-all Semver Test Maybe)
 
 (deftest test
   (assert-op test
@@ -18,14 +18,19 @@
               /=
   )
   (assert-equal test
-                &(Semver.init 1 2 3 @"")
+                &(Just (Semver.init 1 2 3 @""))
                 &(from-string "1.2.3")
                 "simple semantic version parses correctly"
   )
   (assert-equal test
-                &(Semver.init 1 2 3 @"-tag")
+                &(Just (Semver.init 1 2 3 @"-tag"))
                 &(from-string "1.2.3-tag")
                 "semantic version with tag parses correctly"
+  )
+  (assert-equal test
+                &(the (Maybe Semver) (Nothing))
+                &(from-string "123")
+                "bogus does not parse"
   )
   (assert-op test
              &(Semver.init 1 2 3 @"-tag")

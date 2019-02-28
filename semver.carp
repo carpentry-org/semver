@@ -2,9 +2,8 @@
 
 (defmodule Semver
   (defn from-string [s]
-    (do
-      ; TODO: clean error
-      (assert (> (String.count-char s \.) 1))
+    (if (not (Pattern.matches? #"^\d+\.\d+\.\d+.*" s))
+      (Maybe.Nothing)
       (let [split (String.split-by s &[\.])
             major (Int.from-string (Array.nth &split 0))
             minor (Int.from-string (Array.nth &split 1))
@@ -13,7 +12,7 @@
             patch-str (if (> idx -1) (String.prefix-string &trail idx) @&trail)
             patch (Int.from-string &patch-str)
             tag (if (> idx -1) (String.suffix-string &trail idx) @"")]
-          (Semver.init major minor patch tag))))
+          (Maybe.Just (Semver.init major minor patch tag)))))
 
   (defn zero []
     (Semver.init 0 0 0 @""))
@@ -31,16 +30,33 @@
   (defn /= [a b] (not (Semver.= a b)))
 
   (defn < [a b]
-    (if (< (major a) (major b))
-      true
-      (if (< (minor a) (minor b))
-        true
-        (< (patch a) (patch b)))))
+    (or (< (major a) (major b))
+      (or (< (minor a) (minor b))
+          (< (patch a) (patch b)))))
 
   (defn > [a b]
-    (if (> (major a) (major b))
-      true
-      (if (> (minor a) (minor b))
-        true
-        (> (patch a) (patch b)))))
+    (or (> (major a) (major b))
+      (or (> (minor a) (minor b))
+          (> (patch a) (patch b)))))
+)
+
+(defmodule SemverCopy
+  (defn = [a b]
+    (and*
+      (= (Semver.major &a) (Semver.major &b))
+      (= (Semver.minor &a) (Semver.minor &b))
+      (= (Semver.patch &a) (Semver.patch &b))
+      (= (Semver.tag &a) (Semver.tag &b))))
+
+  (defn /= [a b] (not (SemverCopy.= a b)))
+
+  (defn < [a b]
+    (or (< (Semver.major &a) (Semver.major &b))
+      (or (< (Semver.minor &a) (Semver.minor &b))
+          (< (Semver.patch &a) (Semver.patch &b)))))
+
+  (defn > [a b]
+    (or (> (Semver.major &a) (Semver.major &b))
+      (or (> (Semver.minor &a) (Semver.minor &b))
+          (> (Semver.patch &a) (Semver.patch &b)))))
 )
