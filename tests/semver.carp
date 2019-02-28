@@ -4,63 +4,68 @@
 
 (use-all Semver Test)
 
-(defn main []
-  (with-test test
-    (assert-op test
-                &(Semver.init 1 2 3 @"-tag")
-                &(Semver.init 1 2 3 @"-tag")
-                "semantic versions can be tested for equality"
-                =
-    )
-    (assert-op test
-                &(Semver.init 1 2 3 @"-tag")
+(deftest test
+  (assert-op test
+              &(Semver.init 1 2 3 @"-tag")
+              &(Semver.init 1 2 3 @"-tag")
+              "semantic versions can be tested for equality"
+              =
+  )
+  (assert-op test
+              &(Semver.init 1 2 3 @"-tag")
+              &(Semver.init 1 2 3 @"")
+              "semantic versions can be tested for equality"
+              /=
+  )
+  (assert-equal test
                 &(Semver.init 1 2 3 @"")
-                "semantic versions can be tested for equality"
-                /=
-    )
-    (assert-equal test
-                  &(Semver.init 1 2 3 @"")
-                  &(from-string "1.2.3")
-                  "simple semantic version parses correctly"
-    )
-    (assert-equal test
-                  &(Semver.init 1 2 3 @"-tag")
-                  &(from-string "1.2.3-tag")
-                  "semantic version with tag parses correctly"
-    )
-    (assert-op test
+                &(from-string "1.2.3")
+                "simple semantic version parses correctly"
+  )
+  (assert-equal test
                 &(Semver.init 1 2 3 @"-tag")
-                &(Semver.init 1 2 4 @"-tag")
-                "semantic versions can be compared with < I"
-                <
-    )
-    (assert-op test
-                &(Semver.init 1 2 3 @"-tag")
-                &(Semver.init 1 3 0 @"-tag")
-                "semantic versions can be compared with < II"
-                <
-    )
-    (assert-op test
-                &(Semver.init 1 2 3 @"-tag")
-                &(Semver.init 2 0 0 @"-tag")
-                "semantic versions can be compared with < III"
-                <
-    )
-    (assert-op test
-                &(Semver.init 1 2 4 @"-tag")
-                &(Semver.init 1 2 3 @"-tag")
-                "semantic versions can be compared with > I"
-                >
-    )
-    (assert-op test
-                &(Semver.init 1 3 0 @"-tag")
-                &(Semver.init 1 2 3 @"-tag")
-                "semantic versions can be compared with > II"
-                >
-    )
-    (assert-op test
-                &(Semver.init 2 0 0 @"-tag")
-                &(Semver.init 1 2 3 @"-tag")
-                "semantic versions can be compared with > III"
-                >
-    )))
+                &(from-string "1.2.3-tag")
+                "semantic version with tag parses correctly"
+  )
+  (assert-op test
+             &(Semver.init 1 2 3 @"-tag")
+             &(Semver.init 1 2 4 @"-tag")
+             "semantic versions can be compared with < I"
+             <
+  )
+  (assert-op test
+             &(Semver.init 1 2 3 @"-tag")
+             &(Semver.init 1 3 0 @"-tag")
+             "semantic versions can be compared with < II"
+             <
+  )
+  (assert-op test
+             &(Semver.init 1 2 3 @"-tag")
+             &(Semver.init 2 0 0 @"-tag")
+             "semantic versions can be compared with < III"
+             <
+  )
+  (assert-op test
+             &(Semver.init 1 2 4 @"-tag")
+             &(Semver.init 1 2 3 @"-tag")
+             "semantic versions can be compared with > I"
+             >
+  )
+  (assert-op test
+             &(Semver.init 1 3 0 @"-tag")
+             &(Semver.init 1 2 3 @"-tag")
+             "semantic versions can be compared with > II"
+             >
+  )
+  (assert-op test
+             &(Semver.init 2 0 0 @"-tag")
+             &(Semver.init 1 2 3 @"-tag")
+             "semantic versions can be compared with > III"
+             >
+  )
+  (assert-equal test
+                &(Semver.init 0 0 0 @"")
+                &(zero)
+                "semantic versions can be created by zero"
+  )
+)
