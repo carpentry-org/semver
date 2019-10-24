@@ -18,12 +18,12 @@
               /=
   )
   (assert-equal test
-                &(Semver.init 1 2 3 @"")
+                &(Maybe.Just (Semver.init 1 2 3 @""))
                 &(from-string "1.2.3")
                 "simple semantic version parses correctly"
   )
   (assert-equal test
-                &(Semver.init 1 2 3 @"-tag")
+                &(Maybe.Just (Semver.init 1 2 3 @"-tag"))
                 &(from-string "1.2.3-tag")
                 "semantic version with tag parses correctly"
   )
