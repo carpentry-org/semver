@@ -4,8 +4,8 @@
   (defn from-string [s]
     (if (> (String.count-char s \.) 1)
       (let [split (String.split-by s &[\.])
-            major (Int.from-string (Array.nth &split 0))
-            minor (Int.from-string (Array.nth &split 1))
+            major (Int.from-string (Array.unsafe-nth &split 0))
+            minor (Int.from-string (Array.unsafe-nth &split 1))
             trail (String.join "." &(Array.suffix-array &split 2))
             idx (Pattern.find #"[^0-9]" &trail)
             patch-str (if (> idx -1) (String.prefix-string &trail idx) @&trail)
