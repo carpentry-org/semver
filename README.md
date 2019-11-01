@@ -7,7 +7,7 @@ Semantic versioning for Carp.
 You can obtain this library like so:
 
 ```clojure
-(load "git@github.com:carpentry-org/semver@0.0.2")
+(load "git@github.com:carpentry-org/semver@0.0.3")
 ```
 
 ## Usage
