@@ -2,15 +2,15 @@
 
 (defmodule Semver
   (defn from-string [s]
-    (if (> (String.count-char s \.) 1)
-      (let [split (String.split-by s &[\.])
+    (if (> (count-char s \.) 1)
+      (let [split (split-by s &[\.])
             major (Int.from-string (Array.unsafe-nth &split 0))
             minor (Int.from-string (Array.unsafe-nth &split 1))
-            trail (String.join "." &(Array.suffix-array &split 2))
+            trail (join "." &(Array.suffix &split 2))
             idx (Pattern.find #"[^0-9]" &trail)
-            patch-str (if (> idx -1) (String.prefix-string &trail idx) @&trail)
+            patch-str (if (> idx -1) (prefix &trail idx) @&trail)
             patch (Int.from-string &patch-str)
-            tag (if (> idx -1) (String.suffix-string &trail idx) @"")]
+            tag (if (> idx -1) (suffix &trail idx) @"")]
           (Maybe.Just (Semver.init major minor patch tag)))
       (Maybe.Nothing)))
 
