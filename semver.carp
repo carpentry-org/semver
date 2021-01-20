@@ -1,4 +1,5 @@
 (deftype Semver [major Int, minor Int, patch Int, tag (Maybe String)])
+(derive Semver =)
 
 (doc Semver "implements semantic versions for Carp.
 
@@ -8,7 +9,7 @@ optionally have a tag.
 ## Installation
 
 ```
-(load \"https://github.com/carpentry-org/semver@0.0.5\")
+(load \"https://github.com/carpentry-org/semver@0.0.6\")
 ```")
 (defmodule Semver
   (defn from-string [s]
@@ -31,14 +32,6 @@ optionally have a tag.
   (defn zero [] (Semver.init 0 0 0 (Maybe.Nothing)))
   (implements zero Semver.zero)
 
-  (defn = [a b]
-    (and*
-      (= (major a) (major b))
-      (= (minor a) (minor b))
-      (= (patch a) (patch b))
-      (= (tag a) (tag b))))
-  (implements = Semver.=)
-
   (defn < [a b]
     (if (< (major a) (major b))
       true
@@ -48,20 +41,12 @@ optionally have a tag.
   (implements < Semver.<)
 
   (defn > [a b]
-    (if (> (major a) (major b))
-      true
-      (if (> (minor a) (minor b))
-        true
-        (> (patch a) (patch b)))))
+    (< b a))
   (implements > Semver.>)
 )
 
 (defmodule SemverCopy
   (defn = [a b]
-    (and*
-      (= (Semver.major &a) (Semver.major &b))
-      (= (Semver.minor &a) (Semver.minor &b))
-      (= (Semver.patch &a) (Semver.patch &b))
-      (= (Semver.tag &a) (Semver.tag &b))))
+      (Semver.= &a &b))
   (implements = SemverCopy.=)
 )

@@ -33,7 +33,7 @@
 <p>Semantic versions are composed of a major, minor, and patch version, and might
 optionally have a tag.</p>
 <h2>Installation</h2>
-<pre><code>(load &quot;https://github.com/carpentry-org/semver@0.0.5&quot;)
+<pre><code>(load &quot;https://github.com/carpentry-org/semver@0.0.6&quot;)
 </code></pre>
 
             </div>
@@ -69,7 +69,7 @@ optionally have a tag.</p>
                     (Fn [(Ref Semver a), (Ref Semver a)] Bool)
                 </p>
                 <pre class="args">
-                    (= a b)
+                    (= o1 o2)
                 </pre>
                 <p class="doc">
                     
@@ -85,7 +85,7 @@ optionally have a tag.</p>
                     defn
                 </div>
                 <p class="sig">
-                    (Fn [(Ref Semver a), (Ref Semver a)] Bool)
+                    (Fn [a, a] Bool)
                 </p>
                 <pre class="args">
                     (&gt; a b)
