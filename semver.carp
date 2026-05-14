@@ -1,4 +1,7 @@
-(deftype Semver [major Int, minor Int, patch Int, tag (Maybe String)])
+(deftype Semver [major Int
+                 minor Int
+                 patch Int
+                 tag (Maybe String)])
 (derive Semver =)
 
 (doc Semver "implements semantic versions for Carp.
@@ -22,10 +25,11 @@ optionally have a tag.
             patch-str (if (> idx -1) (prefix &trail idx) @&trail)
             patch (Int.from-string &patch-str)
             tag (if (> idx -1) (Maybe.Just (suffix &trail idx)) (Maybe.Nothing))]
-          (Maybe.zip
-            &(fn [maj min pat]
-                (Semver.init maj min pat @&tag))
-            major minor patch))
+        (Maybe.zip
+          &(fn [maj min pat] (Semver.init maj min pat @&tag))
+          major
+          minor
+          patch))
       (Maybe.Nothing)))
   (implements from-string Semver.from-string)
 
@@ -35,18 +39,12 @@ optionally have a tag.
   (defn < [a b]
     (if (< (major a) (major b))
       true
-      (if (< (minor a) (minor b))
-        true
-        (< (patch a) (patch b)))))
+      (if (< (minor a) (minor b)) true (< (patch a) (patch b)))))
   (implements < Semver.<)
 
-  (defn > [a b]
-    (< b a))
-  (implements > Semver.>)
-)
+  (defn > [a b] (< b a))
+  (implements > Semver.>))
 
 (defmodule SemverCopy
-  (defn = [a b]
-      (Semver.= &a &b))
-  (implements = SemverCopy.=)
-)
+  (defn = [a b] (Semver.= &a &b))
+  (implements = SemverCopy.=))
