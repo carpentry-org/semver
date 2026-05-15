@@ -25,10 +25,11 @@ optionally have a tag.
             patch-str (if (> idx -1) (prefix &trail idx) @&trail)
             patch (Int.from-string &patch-str)
             tag (if (> idx -1) (Maybe.Just (suffix &trail idx)) (Maybe.Nothing))]
-        (Maybe.zip &(fn [maj min pat] (Semver.init maj min pat @&tag))
-                   major
-                   minor
-                   patch))
+        (Maybe.zip
+          &(fn [maj min pat] (Semver.init maj min pat @&tag))
+          major
+          minor
+          patch))
       (Maybe.Nothing)))
   (implements from-string Semver.from-string)
 
