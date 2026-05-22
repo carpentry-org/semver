@@ -39,6 +39,16 @@
              "semantic versions can be compared with < III"
              <)
   (assert-op test
+             &(Semver.init 1 2 5 (Maybe.Just @"-tag"))
+             &(Semver.init 1 3 0 (Maybe.Just @"-tag"))
+             "< is false when minor is greater but patch is smaller"
+             >=)
+  (assert-op test
+             &(Semver.init 2 0 0 (Maybe.Just @"-tag"))
+             &(Semver.init 1 5 0 (Maybe.Just @"-tag"))
+             "< is false when major is greater but minor is smaller"
+             >=)
+  (assert-op test
              &(Semver.init 1 2 4 (Maybe.Just @"-tag"))
              &(Semver.init 1 2 3 (Maybe.Just @"-tag"))
              "semantic versions can be compared with > I"
