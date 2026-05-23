@@ -43,9 +43,7 @@ optionally have a tag.
         false
         (if (< (minor a) (minor b))
           true
-          (if (> (minor a) (minor b))
-            false
-            (< (patch a) (patch b)))))))
+          (if (> (minor a) (minor b)) false (< (patch a) (patch b)))))))
   (implements < Semver.<)
 
   (defn > [a b] (< b a))
