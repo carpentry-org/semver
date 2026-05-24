@@ -39,7 +39,11 @@ optionally have a tag.
   (defn < [a b]
     (if (< (major a) (major b))
       true
-      (if (< (minor a) (minor b)) true (< (patch a) (patch b)))))
+      (if (> (major a) (major b))
+        false
+        (if (< (minor a) (minor b))
+          true
+          (if (> (minor a) (minor b)) false (< (patch a) (patch b)))))))
   (implements < Semver.<)
 
   (defn > [a b] (< b a))
