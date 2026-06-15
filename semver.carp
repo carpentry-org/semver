@@ -47,7 +47,20 @@ optionally have a tag.
   (implements < Semver.<)
 
   (defn > [a b] (< b a))
-  (implements > Semver.>))
+  (implements > Semver.>)
+
+  (defn <= [a b] (not (< b a)))
+
+  (defn >= [a b] (not (< a b)))
+
+  (doc str
+    "converts a semantic version to a string, e.g. `1.2.3` or `1.2.3-tag`.")
+  (defn str [s]
+    (let [base (fmt "%d.%d.%d" (major s) (minor s) (patch s))]
+      (match-ref (tag s)
+        (Maybe.Nothing) base
+        (Maybe.Just t) (String.concat &[base @t]))))
+  (implements str Semver.str))
 
 (defmodule SemverCopy
   (defn = [a b] (Semver.= &a &b))
