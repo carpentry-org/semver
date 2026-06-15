@@ -37,21 +37,16 @@ optionally have a tag.
   (implements zero Semver.zero)
 
   (defn < [a b]
-    (if (< (major a) (major b))
-      true
-      (if (> (major a) (major b))
-        false
-        (if (< (minor a) (minor b))
-          true
-          (if (> (minor a) (minor b)) false (< (patch a) (patch b)))))))
+    (cond
+      (< (major a) (major b)) true
+      (> (major a) (major b)) false
+      (< (minor a) (minor b)) true
+      (> (minor a) (minor b)) false
+      (< (patch a) (patch b))))
   (implements < Semver.<)
 
   (defn > [a b] (< b a))
   (implements > Semver.>)
-
-  (defn <= [a b] (not (< b a)))
-
-  (defn >= [a b] (not (< a b)))
 
   (doc str
     "converts a semantic version to a string, e.g. `1.2.3` or `1.2.3-tag`.")

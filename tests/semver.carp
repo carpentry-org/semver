@@ -76,7 +76,7 @@
   (assert-op test
              &(Semver.init 1 2 4 (Maybe.Nothing))
              &(Semver.init 1 2 3 (Maybe.Nothing))
-             "<= is false when greater"
+             ">= is true when greater"
              >=)
   (assert-op test
              &(Semver.init 1 2 4 (Maybe.Nothing))
@@ -91,7 +91,7 @@
   (assert-op test
              &(Semver.init 1 2 3 (Maybe.Nothing))
              &(Semver.init 1 2 4 (Maybe.Nothing))
-             ">= is false when less"
+             "<= is true when less"
              <=)
   (assert-equal test
     "1.2.3"
