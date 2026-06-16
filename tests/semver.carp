@@ -76,11 +76,6 @@
   (assert-op test
              &(Semver.init 1 2 4 (Maybe.Nothing))
              &(Semver.init 1 2 3 (Maybe.Nothing))
-             ">= is true when greater"
-             >=)
-  (assert-op test
-             &(Semver.init 1 2 4 (Maybe.Nothing))
-             &(Semver.init 1 2 3 (Maybe.Nothing))
              "semantic versions can be compared with >= when greater"
              >=)
   (assert-op test
@@ -88,11 +83,6 @@
              &(Semver.init 1 2 3 (Maybe.Nothing))
              "semantic versions can be compared with >= when equal"
              >=)
-  (assert-op test
-             &(Semver.init 1 2 3 (Maybe.Nothing))
-             &(Semver.init 1 2 4 (Maybe.Nothing))
-             "<= is true when less"
-             <=)
   (assert-equal test
     "1.2.3"
     &(str &(Semver.init 1 2 3 (Maybe.Nothing)))
