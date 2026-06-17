@@ -64,6 +64,30 @@
              "semantic versions can be compared with > III"
              >)
   (assert-equal test
+    "1.2.3"
+    &(str &(Semver.init 1 2 3 (Maybe.Nothing)))
+    "str works for a simple version")
+  (assert-equal test
+    "1.2.3-tag"
+    &(str &(Semver.init 1 2 3 (Maybe.Just @"-tag")))
+    "str works for a version with a tag")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "")
+    "from-string returns Nothing for an empty string")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "1")
+    "from-string returns Nothing for a single number")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "1.2")
+    "from-string returns Nothing for only major.minor")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "a.b.c")
+    "from-string returns Nothing for non-numeric input")
+  (assert-equal test
     &(Semver.init 0 0 0 (Maybe.Nothing))
     &(zero)
     "semantic versions can be created by zero"))
