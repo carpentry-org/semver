@@ -4,6 +4,10 @@
 
 (use-all Semver Test)
 
+(defn rel [maj min pat] (Semver.init maj min pat (Maybe.Nothing)))
+
+(defn pre [maj min pat tag] (Semver.init maj min pat (Maybe.Just @tag)))
+
 (deftest test
   (assert-op test
              &(Semver.init 1 2 3 (Maybe.Just @"-tag"))
@@ -90,4 +94,64 @@
   (assert-equal test
     &(Semver.init 0 0 0 (Maybe.Nothing))
     &(zero)
-    "semantic versions can be created by zero"))
+    "semantic versions can be created by zero")
+
+  ; pre-release precedence (SemVer 2.0.0 §11)
+  (assert-op test
+             &(pre 1 0 0 "-alpha")
+             &(rel 1 0 0)
+             "a pre-release has lower precedence than the release"
+             <)
+  (assert-op test
+             &(rel 1 0 0)
+             &(pre 1 0 0 "-rc.1")
+             "the release has higher precedence than a pre-release"
+             >)
+  (assert-false test
+    (< &(pre 1 0 0 "-alpha") &(pre 1 0 0 "-alpha"))
+    "equal pre-releases are not strictly ordered")
+  (assert-op test
+             &(pre 1 0 0 "-1")
+             &(pre 1 0 0 "-alpha")
+             "numeric identifiers rank below alphanumeric ones"
+             <)
+  (assert-op test
+             &(pre 1 0 0 "-alpha.2")
+             &(pre 1 0 0 "-alpha.11")
+             "numeric identifiers compare numerically, not lexically"
+             <)
+  (assert-op test
+             &(pre 1 0 0 "-alpha")
+             &(pre 1 0 0 "-alpha.1")
+             "a larger set of pre-release fields takes precedence"
+             <)
+  ; the canonical ordering from the SemVer 2.0.0 spec
+  (assert-op test &(pre 1 0 0 "-alpha") &(pre 1 0 0 "-alpha.1") "spec chain 1" <)
+  (assert-op test
+             &(pre 1 0 0 "-alpha.1")
+             &(pre 1 0 0 "-alpha.beta")
+             "spec chain 2"
+             <)
+  (assert-op test
+             &(pre 1 0 0 "-alpha.beta")
+             &(pre 1 0 0 "-beta")
+             "spec chain 3"
+             <)
+  (assert-op test &(pre 1 0 0 "-beta") &(pre 1 0 0 "-beta.2") "spec chain 4" <)
+  (assert-op test
+             &(pre 1 0 0 "-beta.2")
+             &(pre 1 0 0 "-beta.11")
+             "spec chain 5"
+             <)
+  (assert-op test &(pre 1 0 0 "-beta.11") &(pre 1 0 0 "-rc.1") "spec chain 6" <)
+  (assert-op test &(pre 1 0 0 "-rc.1") &(rel 1 0 0) "spec chain 7" <)
+  ; build metadata is ignored for precedence (SemVer 2.0.0 §10)
+  (assert-false test
+    (< &(pre 1 0 0 "-alpha+001") &(pre 1 0 0 "-alpha+999"))
+    "build metadata does not affect precedence (forward)")
+  (assert-false test
+    (> &(pre 1 0 0 "-alpha+001") &(pre 1 0 0 "-alpha+999"))
+    "build metadata does not affect precedence (backward)")
+  (assert-false test
+    (< &(Semver.init 1 0 0 (Maybe.Just @"+build")) &(rel 1 0 0))
+    "build-only metadata has the same precedence as the bare release"))
