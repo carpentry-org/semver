@@ -36,13 +36,96 @@ optionally have a tag.
   (defn zero [] (Semver.init 0 0 0 (Maybe.Nothing)))
   (implements zero Semver.zero)
 
+  (hidden all-num?)
+  (private all-num?)
+  (defn all-num? [s]
+    (and (not (String.empty? s))
+         (let-do [ok true
+                  n (String.length s)]
+           (for [i 0 n]
+             (unless (Char.num? (String.char-at s i)) (set! ok false)))
+           ok)))
+
+  (hidden compare-ids)
+  (private compare-ids)
+  ; compares two pre-release identifiers per SemVer 2.0.0 §11: numeric
+  ; identifiers rank below alphanumeric ones, two numeric identifiers compare
+  ; numerically (the spec forbids leading zeros, so the longer digit string is
+  ; the larger number), and two alphanumerics compare in ASCII order.
+  (defn compare-ids [a b]
+    (let [an (all-num? a)
+          bn (all-num? b)]
+      (cond
+        (and an bn)
+          (let [la (String.length a)
+                lb (String.length b)]
+            (cond
+              (Int.< la lb) -1
+              (Int.> la lb) 1
+              (cond (String.< a b) -1 (String.> a b) 1 0)))
+        an -1
+        bn 1
+        (cond (String.< a b) -1 (String.> a b) 1 0))))
+
+  (hidden compare-pre)
+  (private compare-pre)
+  ; compares two dotted pre-release strings; when every shared identifier is
+  ; equal, the version with more identifiers has the higher precedence.
+  (defn compare-pre [a b]
+    (let-do [as (split-by a &[\.])
+             bs (split-by b &[\.])
+             la (Array.length &as)
+             lb (Array.length &bs)
+             n (if (Int.< la lb) la lb)
+             result 0
+             i 0]
+      (while-do (and (Int.= result 0) (Int.< i n))
+        (set! result
+              (compare-ids (Array.unsafe-nth &as i) (Array.unsafe-nth &bs i)))
+        (set! i (Int.inc i)))
+      (if (Int.= result 0) (cond (Int.< la lb) -1 (Int.> la lb) 1 0) result)))
+
+  (hidden pre-release)
+  (private pre-release)
+  ; the pre-release identifier string of a tag, or Nothing. The stored tag keeps
+  ; the leading `-` and any `+build` metadata; both are stripped here, since
+  ; build metadata is ignored for precedence (SemVer 2.0.0 §10).
+  (defn pre-release [t]
+    (match-ref t
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just s)
+        (let [plus (String.index-of s \+)
+              base (if (Int.< plus 0) @s (prefix s plus))]
+          (if (and (not (String.empty? &base))
+                   (Char.= (String.char-at &base 0) \-))
+            (Maybe.Just (suffix &base 1))
+            (Maybe.Nothing)))))
+
+  (hidden compare-tags)
+  (private compare-tags)
+  ; a version with a pre-release tag has lower precedence than one without
+  ; (SemVer 2.0.0 §11); otherwise their pre-release strings decide.
+  (defn compare-tags [ta tb]
+    (let [pa (pre-release ta)
+          pb (pre-release tb)]
+      (match-ref &pa
+        (Maybe.Nothing) (match-ref &pb (Maybe.Nothing) 0 (Maybe.Just _) 1)
+        (Maybe.Just sa)
+          (match-ref &pb (Maybe.Nothing) -1 (Maybe.Just sb) (compare-pre sa sb)))))
+
+  (doc < "compares two semantic versions for precedence per SemVer 2.0.0 §11:
+major, minor, and patch numerically, then — when those are equal — by
+pre-release tag. A version with a pre-release tag (e.g. `1.0.0-rc.1`) has lower
+precedence than the corresponding release (`1.0.0`). Build metadata is ignored.")
   (defn < [a b]
     (cond
       (< (major a) (major b)) true
       (> (major a) (major b)) false
       (< (minor a) (minor b)) true
       (> (minor a) (minor b)) false
-      (< (patch a) (patch b))))
+      (< (patch a) (patch b)) true
+      (> (patch a) (patch b)) false
+      (Int.< (compare-tags (tag a) (tag b)) 0)))
   (implements < Semver.<)
 
   (defn > [a b] (< b a))
