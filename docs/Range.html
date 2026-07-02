@@ -1,0 +1,294 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <link rel="stylesheet" href="../style.css">
+    </head>
+    <body>
+        <div class="content">
+            <div class="logo">
+                <a href="">
+                    <img src="">
+                </a>
+                <div class="title">
+                    Semver
+                </div>
+                <div class="index">
+                    <ul>
+                        <li>
+                            <a href="Semver.html">
+                                Semver
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Range.html">
+                                Range
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Comparator.html">
+                                Comparator
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ComparatorSet.html">
+                                ComparatorSet
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="module">
+                <h1>
+                    Range
+                </h1>
+                <div class="module-description">
+                    <p>a version requirement: a disjunction (logical <code>OR</code>) of
+<code>ComparatorSet</code>s, of the kind found in package manifests. Parse one with
+<a href="#from-string">from-string</a> and test membership with <a href="#satisfies?">satisfies?</a>.</p>
+<p>Supported syntax (a practical subset of the npm/node-semver grammar):</p>
+<ul>
+<li>comparators: <code>&gt;=1.2.3</code>, <code>&gt;1.2.3</code>, <code>&lt;=1.2.3</code>, <code>&lt;1.2.3</code>, <code>=1.2.3</code></li>
+<li>an exact version: <code>1.2.3</code> (equivalent to <code>=1.2.3</code>)</li>
+<li>caret ranges: <code>^1.2.3</code> (compatible up to the next non-zero component)</li>
+<li>tilde ranges: <code>~1.2.3</code> (patch-level changes within the minor)</li>
+<li>x-ranges and partials: <code>1.2.x</code>, <code>1.2.*</code>, <code>1.x</code>, <code>1</code>, <code>*</code></li>
+<li>hyphen ranges: <code>1.2.3 - 2.3.4</code> (inclusive on both ends)</li>
+<li>whitespace joins comparators with <code>AND</code>; <code>||</code> joins sets with <code>OR</code></li>
+</ul>
+<p>A leading <code>v</code> (as in <code>v1.2.3</code>) is accepted and ignored.</p>
+
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#copy">
+                        <h3 id="copy">
+                            copy
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a)] Range)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>copies a <code>Range</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#delete">
+                        <h3 id="delete">
+                            delete
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Range] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>deletes a <code>Range</code>. Should usually not be called manually.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#from-string">
+                        <h3 id="from-string">
+                            from-string
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref String a)] (Maybe Range))
+                    </p>
+                    <pre class="args">
+                        (from-string s)
+                    </pre>
+                    <p class="doc">
+                        <p>parses a range string such as <code>^1.2.3</code>, <code>&gt;=1.0.0 &lt;2.0.0</code>, or
+<code>1.2.x || 2.0.0</code> into a <code>Range</code>. Returns <code>Nothing</code> when the string is malformed.
+The empty string and <code>*</code> both parse to the universal range that every version
+satisfies.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#init">
+                        <h3 id="init">
+                            init
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Array ComparatorSet)] Range)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>creates a <code>Range</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#prn">
+                        <h3 id="prn">
+                            prn
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a)] String)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>converts a <code>Range</code> to a string.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#satisfies?">
+                        <h3 id="satisfies?">
+                            satisfies?
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Ref Semver a)] Bool)
+                    </p>
+                    <pre class="args">
+                        (satisfies? r v)
+                    </pre>
+                    <p class="doc">
+                        <p>returns whether the version <code>v</code> satisfies the range <code>r</code>.</p>
+<p>Comparisons follow SemVer 2.0.0 precedence. Following node-semver's default,
+a pre-release version (e.g. <code>1.2.3-beta</code>) satisfies the range only when some
+comparator explicitly names a pre-release at the same <code>major.minor.patch</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-sets">
+                        <h3 id="set-sets">
+                            set-sets
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Range, (Array ComparatorSet)] Range)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>sets</code> property of a <code>Range</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#set-sets!">
+                        <h3 id="set-sets!">
+                            set-sets!
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Array ComparatorSet)] ())
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>sets the <code>sets</code> property of a <code>Range</code> in place.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#sets">
+                        <h3 id="sets">
+                            sets
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a)] (Ref (Array ComparatorSet) a))
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>gets the <code>sets</code> property of a <code>Range</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#str">
+                        <h3 id="str">
+                            str
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a)] String)
+                    </p>
+                    <pre class="args">
+                        (str r)
+                    </pre>
+                    <p class="doc">
+                        <p>renders a range back to string form; comparator sets are joined by
+<code>||</code>. The output is normalized and may differ from the parsed input.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#update-sets">
+                        <h3 id="update-sets">
+                            update-sets
+                        </h3>
+                    </a>
+                    <div class="description">
+                        instantiate
+                    </div>
+                    <p class="sig">
+                        (Fn [Range, (Ref (Fn [(Array ComparatorSet)] (Array ComparatorSet) a) b)] Range)
+                    </p>
+                    <span>
+                        
+                    </span>
+                    <p class="doc">
+                        <p>updates the <code>sets</code> property of a <code>Range</code> using a function <code>f</code>.</p>
+
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -29,6 +29,37 @@ field (numeric identifiers numerically, and below alphanumeric ones); and build
 metadata is ignored. Equality (`=`) remains structural and compares the tag
 verbatim.
 
+## Version ranges
+
+A `Range` is a version requirement of the kind found in package manifests. Parse
+one with `Range.from-string` and test a version with `Range.satisfies?`.
+
+```clojure
+(match (Range.from-string "^1.2.3")
+  (Maybe.Just r)
+    (Range.satisfies? &r &(Semver.init 1 4 0 (Maybe.Nothing))) ; => true
+  (Maybe.Nothing) false)
+```
+
+`Range.from-string` understands a practical subset of the npm/node-semver
+grammar:
+
+| Form                | Example            | Meaning                          |
+|---------------------|--------------------|----------------------------------|
+| comparators         | `>=1.2.3 <2.0.0`   | whitespace is `AND`              |
+| exact               | `1.2.3`            | same as `=1.2.3`                 |
+| caret               | `^1.2.3`           | `>=1.2.3 <2.0.0`                 |
+| tilde               | `~1.2.3`           | `>=1.2.3 <1.3.0`                 |
+| x-ranges / partials | `1.2.x`, `1.x`, `*`| wildcard components              |
+| hyphen              | `1.2.3 - 2.3.4`    | inclusive on both ends           |
+| alternatives        | `^1.0.0 \|\| ^2.0.0` | `\|\|` is `OR`                 |
+
+Comparisons follow SemVer 2.0.0 precedence. Following node-semver's default, a
+pre-release version such as `1.2.3-beta` only satisfies a range when some
+comparator explicitly opts into a pre-release at the same `major.minor.patch`,
+so `2.0.0-beta` does not satisfy `^1.2.3`. `Range.str` renders a range back to a
+normalized comparator form.
+
 <hr/>
 
 Have fun!

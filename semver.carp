@@ -143,3 +143,459 @@ precedence than the corresponding release (`1.0.0`). Build metadata is ignored."
 (defmodule SemverCopy
   (defn = [a b] (Semver.= &a &b))
   (implements = SemverCopy.=))
+
+; ------------------------------------------------------------------
+; Version ranges / constraints
+; ------------------------------------------------------------------
+
+(deftype SemverOp
+  (Lt [])
+  (Lte [])
+  (Gt [])
+  (Gte [])
+  (Eq []))
+
+(doc Comparator "a single version constraint: a comparison operator paired with
+a `Semver`. Comparators are produced by parsing a [Range](#Range); a version
+satisfies a comparator when the operator holds for it under SemVer precedence.")
+(deftype Comparator [op SemverOp
+                     ver Semver])
+
+(doc ComparatorSet "a conjunction (logical `AND`) of `Comparator`s. A version
+satisfies the set only when it satisfies every comparator in it.")
+(deftype ComparatorSet [comparators (Array Comparator)])
+
+(doc Range "a version requirement: a disjunction (logical `OR`) of
+`ComparatorSet`s, of the kind found in package manifests. Parse one with
+[from-string](#from-string) and test membership with [satisfies?](#satisfies?).
+
+Supported syntax (a practical subset of the npm/node-semver grammar):
+
+- comparators: `>=1.2.3`, `>1.2.3`, `<=1.2.3`, `<1.2.3`, `=1.2.3`
+- an exact version: `1.2.3` (equivalent to `=1.2.3`)
+- caret ranges: `^1.2.3` (compatible up to the next non-zero component)
+- tilde ranges: `~1.2.3` (patch-level changes within the minor)
+- x-ranges and partials: `1.2.x`, `1.2.*`, `1.x`, `1`, `*`
+- hyphen ranges: `1.2.3 - 2.3.4` (inclusive on both ends)
+- whitespace joins comparators with `AND`; `||` joins sets with `OR`
+
+A leading `v` (as in `v1.2.3`) is accepted and ignored.")
+(deftype Range [sets (Array ComparatorSet)])
+
+(hidden SemverPartial)
+(deftype SemverPartial [major Int
+                        minor Int
+                        patch Int
+                        tag (Maybe String)])
+
+(defmodule Range
+  ; --- small helpers ---
+  (defn- z [x] (if (Int.< x 0) 0 x))
+
+  (defn- wildcard-str? [s]
+    (or (String.= s "*") (or (String.= s "x") (String.= s "X"))))
+
+  (defn- strip-leading-v [s]
+    (if (and (not (String.empty? s))
+             (or (Char.= (String.char-at s 0) \v)
+                 (Char.= (String.char-at s 0) \V)))
+      (String.suffix s 1)
+      @s))
+
+  (defn- first-tag-index [a b]
+    (cond
+      (and (Int.< a 0) (Int.< b 0)) -1
+      (Int.< a 0) b
+      (Int.< b 0) a
+      (Int.min a b)))
+
+  ; parses a single numeric component: a wildcard yields -1, a run of digits
+  ; yields its value, anything else (incl. the empty string) fails.
+  (defn- parse-num-comp [p]
+    (cond
+      (String.empty? p) (Maybe.Nothing)
+      (wildcard-str? p) (Maybe.Just -1)
+      (Int.from-string p)))
+
+  (defn- operator-only? [t]
+    (or (String.= t ">")
+        (or (String.= t ">=")
+            (or (String.= t "<")
+                (or (String.= t "<=")
+                    (or (String.= t "=") (or (String.= t "~") (String.= t "^"))))))))
+
+  (defn- blank? [s] (Int.= 0 (Array.length &(String.words s))))
+
+  (defn- mkc [op big m p tag] (Comparator.init op (Semver.init big m p tag)))
+
+  ; --- partial-version parsing ---
+  ; a component value of -1 means "wildcard or unspecified"; when the major is
+  ; wildcard the whole partial is the universal `*`.
+  (defn- assemble-partial [parts np tagref]
+    (match (parse-num-comp (Array.unsafe-nth parts 0))
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just major)
+        (if (Int.< major 0)
+          (Maybe.Just (SemverPartial.init -1 -1 -1 (Maybe.Nothing)))
+          (match (if (Int.>= np 2)
+              (parse-num-comp (Array.unsafe-nth parts 1))
+              (Maybe.Just -1))
+            (Maybe.Nothing) (Maybe.Nothing)
+            (Maybe.Just minor)
+              (if (Int.< minor 0)
+                (Maybe.Just (SemverPartial.init major -1 -1 (Maybe.Nothing)))
+                (match (if (Int.>= np 3)
+                    (parse-num-comp (Array.unsafe-nth parts 2))
+                    (Maybe.Just -1))
+                  (Maybe.Nothing) (Maybe.Nothing)
+                  (Maybe.Just patch)
+                    (if (Int.< patch 0)
+                      (Maybe.Just
+                        (SemverPartial.init major minor -1 (Maybe.Nothing)))
+                      (Maybe.Just (SemverPartial.init major minor patch @tagref)))))))))
+
+  (defn- parse-partial [s0]
+    (let [s (strip-leading-v s0)]
+      (if (or (String.empty? &s) (wildcard-str? &s))
+        (Maybe.Just (SemverPartial.init -1 -1 -1 (Maybe.Nothing)))
+        (let [hy (String.index-of &s \-)
+              pl (String.index-of &s \+)
+              ts (first-tag-index hy pl)
+              core (if (Int.< ts 0) @&s (String.prefix &s ts))
+              tag (if (Int.< ts 0)
+                (Maybe.Nothing)
+                (Maybe.Just (String.suffix &s ts)))
+              parts (String.split-by &core &[\.])
+              np (Array.length &parts)]
+          (if (or (Int.= np 0) (Int.> np 3))
+            (Maybe.Nothing)
+            (assemble-partial &parts np &tag))))))
+
+  ; --- expansion of the various range forms into comparators ---
+  (defn- caret-upper [big m p]
+    (cond
+      (Int.> big 0) (mkc (SemverOp.Lt) (Int.inc big) 0 0 (Maybe.Nothing))
+      (Int.> m 0) (mkc (SemverOp.Lt) 0 (Int.inc m) 0 (Maybe.Nothing))
+      (Int.< m 0) (mkc (SemverOp.Lt) 1 0 0 (Maybe.Nothing))
+      (Int.> p 0) (mkc (SemverOp.Lt) 0 0 (Int.inc p) (Maybe.Nothing))
+      (Int.= p 0) (mkc (SemverOp.Lt) 0 0 1 (Maybe.Nothing))
+      (mkc (SemverOp.Lt) 0 1 0 (Maybe.Nothing))))
+
+  (defn- keep-tag [part m p]
+    (if (and (Int.>= m 0) (Int.>= p 0))
+      @(SemverPartial.tag part)
+      (Maybe.Nothing)))
+
+  (defn- expand-caret [part]
+    (let [big @(SemverPartial.major part)
+          m @(SemverPartial.minor part)
+          p @(SemverPartial.patch part)]
+      (if (Int.< big 0)
+        [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))]
+        [(mkc (SemverOp.Gte) big (z m) (z p) (keep-tag part m p))
+         (caret-upper big m p)])))
+
+  (defn- expand-tilde [part]
+    (let [big @(SemverPartial.major part)
+          m @(SemverPartial.minor part)
+          p @(SemverPartial.patch part)]
+      (if (Int.< big 0)
+        [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))]
+        [(mkc (SemverOp.Gte) big (z m) (z p) (keep-tag part m p))
+         (if (Int.< m 0)
+           (mkc (SemverOp.Lt) (Int.inc big) 0 0 (Maybe.Nothing))
+           (mkc (SemverOp.Lt) big (Int.inc m) 0 (Maybe.Nothing)))])))
+
+  (defn- expand-bare [part]
+    (let [big @(SemverPartial.major part)
+          m @(SemverPartial.minor part)
+          p @(SemverPartial.patch part)]
+      (cond
+        (Int.< big 0) [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))]
+        (Int.< m 0)
+          [(mkc (SemverOp.Gte) big 0 0 (Maybe.Nothing))
+           (mkc (SemverOp.Lt) (Int.inc big) 0 0 (Maybe.Nothing))]
+        (Int.< p 0)
+          [(mkc (SemverOp.Gte) big m 0 (Maybe.Nothing))
+           (mkc (SemverOp.Lt) big (Int.inc m) 0 (Maybe.Nothing))]
+        [(mkc (SemverOp.Eq) big m p @(SemverPartial.tag part))])))
+
+  (defn- expand-primitive [op part]
+    (let [big @(SemverPartial.major part)
+          m @(SemverPartial.minor part)
+          p @(SemverPartial.patch part)]
+      (cond
+        (Int.< big 0)
+          (match-ref &op
+            (SemverOp.Lt) [(mkc (SemverOp.Lt) 0 0 0 (Maybe.Nothing))]
+            (SemverOp.Gt) [(mkc (SemverOp.Lt) 0 0 0 (Maybe.Nothing))]
+            _ [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))])
+        (Int.< m 0)
+          (match-ref &op
+            (SemverOp.Gt)
+              [(mkc (SemverOp.Gte) (Int.inc big) 0 0 (Maybe.Nothing))]
+            (SemverOp.Lt) [(mkc (SemverOp.Lt) big 0 0 (Maybe.Nothing))]
+            (SemverOp.Gte) [(mkc (SemverOp.Gte) big 0 0 (Maybe.Nothing))]
+            (SemverOp.Lte)
+              [(mkc (SemverOp.Lt) (Int.inc big) 0 0 (Maybe.Nothing))]
+            (SemverOp.Eq)
+              [(mkc (SemverOp.Gte) big 0 0 (Maybe.Nothing))
+               (mkc (SemverOp.Lt) (Int.inc big) 0 0 (Maybe.Nothing))])
+        (Int.< p 0)
+          (match-ref &op
+            (SemverOp.Gt)
+              [(mkc (SemverOp.Gte) big (Int.inc m) 0 (Maybe.Nothing))]
+            (SemverOp.Lt) [(mkc (SemverOp.Lt) big m 0 (Maybe.Nothing))]
+            (SemverOp.Gte) [(mkc (SemverOp.Gte) big m 0 (Maybe.Nothing))]
+            (SemverOp.Lte)
+              [(mkc (SemverOp.Lt) big (Int.inc m) 0 (Maybe.Nothing))]
+            (SemverOp.Eq)
+              [(mkc (SemverOp.Gte) big m 0 (Maybe.Nothing))
+               (mkc (SemverOp.Lt) big (Int.inc m) 0 (Maybe.Nothing))])
+        [(mkc op big m p @(SemverPartial.tag part))])))
+
+  (defn- expand-simple [tok]
+    (let [n (String.length tok)]
+      (if (Int.= n 0)
+        (Maybe.Just [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))])
+        (let [c0 (String.char-at tok 0)]
+          (cond
+            (Char.= c0 \^)
+              (match (parse-partial &(String.suffix tok 1))
+                (Maybe.Nothing) (Maybe.Nothing)
+                (Maybe.Just p) (Maybe.Just (expand-caret &p)))
+            (Char.= c0 \~)
+              (match (parse-partial &(String.suffix tok 1))
+                (Maybe.Nothing) (Maybe.Nothing)
+                (Maybe.Just p) (Maybe.Just (expand-tilde &p)))
+            (Char.= c0 \>)
+              (let [ge (and (Int.> n 1) (Char.= (String.char-at tok 1) \=))
+                    rest (if ge (String.suffix tok 2) (String.suffix tok 1))
+                    op (if ge (SemverOp.Gte) (SemverOp.Gt))]
+                (match (parse-partial &rest)
+                  (Maybe.Nothing) (Maybe.Nothing)
+                  (Maybe.Just p) (Maybe.Just (expand-primitive op &p))))
+            (Char.= c0 \<)
+              (let [le (and (Int.> n 1) (Char.= (String.char-at tok 1) \=))
+                    rest (if le (String.suffix tok 2) (String.suffix tok 1))
+                    op (if le (SemverOp.Lte) (SemverOp.Lt))]
+                (match (parse-partial &rest)
+                  (Maybe.Nothing) (Maybe.Nothing)
+                  (Maybe.Just p) (Maybe.Just (expand-primitive op &p))))
+            (Char.= c0 \=)
+              (match (parse-partial &(String.suffix tok 1))
+                (Maybe.Nothing) (Maybe.Nothing)
+                (Maybe.Just p) (Maybe.Just (expand-primitive (SemverOp.Eq) &p)))
+            (match (parse-partial tok)
+              (Maybe.Nothing) (Maybe.Nothing)
+              (Maybe.Just p) (Maybe.Just (expand-bare &p))))))))
+
+  ; --- assembling comparator sets ---
+  (defn- merge-ops [toks]
+    (let-do [n (Array.length toks)
+             res []
+             i 0]
+      (while-do (Int.< i n)
+        (let [t (Array.unsafe-nth toks i)]
+          (if (and (operator-only? t) (Int.< (Int.inc i) n))
+            (do
+              (set! res
+                    (Array.push-back res
+                                     (String.append t
+                                                    (Array.unsafe-nth toks
+                                                                      (Int.inc i)))))
+              (set! i (Int.+ i 2)))
+            (do (set! res (Array.push-back res @t)) (set! i (Int.inc i))))))
+      res))
+
+  (defn- parse-simples [toks]
+    (let-do [n (Array.length toks)
+             acc []
+             ok true
+             i 0]
+      (while-do (and ok (Int.< i n))
+        (match (expand-simple (Array.unsafe-nth toks i))
+          (Maybe.Nothing) (set! ok false)
+          (Maybe.Just cs) (set! acc (Array.concat &[acc cs])))
+        (set! i (Int.inc i)))
+      (if ok (Maybe.Just (ComparatorSet.init acc)) (Maybe.Nothing))))
+
+  (defn- hyphen-comparators [lp hp]
+    (let [lo-major @(SemverPartial.major lp)
+          lo-minor @(SemverPartial.minor lp)
+          lo-patch @(SemverPartial.patch lp)
+          lower (if (Int.< lo-major 0)
+            (mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))
+            (mkc (SemverOp.Gte)
+                 lo-major
+                 (z lo-minor)
+                 (z lo-patch)
+                 (keep-tag lp lo-minor lo-patch)))
+          hi-major @(SemverPartial.major hp)
+          hi-minor @(SemverPartial.minor hp)
+          hi-patch @(SemverPartial.patch hp)]
+      (cond
+        (Int.< hi-major 0) [lower]
+        (Int.< hi-minor 0)
+          [lower (mkc (SemverOp.Lt) (Int.inc hi-major) 0 0 (Maybe.Nothing))]
+        (Int.< hi-patch 0)
+          [lower
+           (mkc (SemverOp.Lt) hi-major (Int.inc hi-minor) 0 (Maybe.Nothing))]
+        [lower
+         (mkc (SemverOp.Lte) hi-major hi-minor hi-patch @(SemverPartial.tag hp))])))
+
+  (defn- parse-hyphen [lo hi]
+    (match (parse-partial lo)
+      (Maybe.Nothing) (Maybe.Nothing)
+      (Maybe.Just lp)
+        (match (parse-partial hi)
+          (Maybe.Nothing) (Maybe.Nothing)
+          (Maybe.Just hp)
+            (Maybe.Just (ComparatorSet.init (hyphen-comparators &lp &hp))))))
+
+  (defn- parse-set [alt]
+    (let [toks0 (String.words alt)]
+      (if (Int.= (Array.length &toks0) 0)
+        (Maybe.Just
+          (ComparatorSet.init [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))]))
+        (let [toks (merge-ops &toks0)
+              n (Array.length &toks)]
+          (if (and (Int.= n 3) (String.= (Array.unsafe-nth &toks 1) "-"))
+            (parse-hyphen (Array.unsafe-nth &toks 0) (Array.unsafe-nth &toks 2))
+            (parse-simples &toks))))))
+
+  (doc from-string "parses a range string such as `^1.2.3`, `>=1.0.0 <2.0.0`, or
+`1.2.x || 2.0.0` into a `Range`. Returns `Nothing` when the string is malformed.
+The empty string and `*` both parse to the universal range that every version
+satisfies.")
+  (defn from-string [s]
+    (let-do [alts (String.split-by s &[\|])
+             n (Array.length &alts)
+             sets []
+             ok true
+             i 0]
+      (while-do (and ok (Int.< i n))
+        (let [alt (Array.unsafe-nth &alts i)]
+          (unless (blank? alt)
+            (match (parse-set alt)
+              (Maybe.Nothing) (set! ok false)
+              (Maybe.Just cs) (set! sets (Array.push-back sets cs)))))
+        (set! i (Int.inc i)))
+      (cond
+        (not ok) (Maybe.Nothing)
+        (Int.= (Array.length &sets) 0)
+          (Maybe.Just
+            (Range.init
+              [(ComparatorSet.init [(mkc (SemverOp.Gte) 0 0 0 (Maybe.Nothing))])]))
+        (Maybe.Just (Range.init sets)))))
+  (implements from-string Range.from-string)
+
+  ; --- satisfiability ---
+  (defn- has-prerelease? [v]
+    (match-ref (Semver.tag v)
+      (Maybe.Nothing) false
+      (Maybe.Just s)
+        (let [plus (String.index-of s \+)
+              base (if (Int.< plus 0) @s (String.prefix s plus))]
+          (and (not (String.empty? &base)) (Char.= (String.char-at &base 0) \-)))))
+
+  (defn- cmp-satisfies? [c v]
+    (let [cv (Comparator.ver c)]
+      (match-ref (Comparator.op c)
+        (SemverOp.Lt) (Semver.< v cv)
+        (SemverOp.Lte) (not (Semver.< cv v))
+        (SemverOp.Gt) (Semver.< cv v)
+        (SemverOp.Gte) (not (Semver.< v cv))
+        (SemverOp.Eq) (and (not (Semver.< v cv)) (not (Semver.< cv v))))))
+
+  ; node-semver's default (includePrerelease=false): a pre-release version only
+  ; satisfies a set if some comparator in it names a pre-release at the same
+  ; major.minor.patch. This keeps e.g. `2.0.0-beta` from matching `^1.2.3`.
+  (defn- prerelease-ok? [cmps v]
+    (if (not (has-prerelease? v))
+      true
+      (let-do [n (Array.length cmps)
+               found false
+               vmaj @(Semver.major v)
+               vmin @(Semver.minor v)
+               vpat @(Semver.patch v)
+               i 0]
+        (while-do (and (not found) (Int.< i n))
+          (let [cv (Comparator.ver (Array.unsafe-nth cmps i))]
+            (when (and (has-prerelease? cv)
+                       (and (Int.= vmaj @(Semver.major cv))
+                            (and (Int.= vmin @(Semver.minor cv))
+                                 (Int.= vpat @(Semver.patch cv)))))
+              (set! found true)))
+          (set! i (Int.inc i)))
+        found)))
+
+  (defn- set-satisfies? [cs v]
+    (let-do [cmps (ComparatorSet.comparators cs)
+             n (Array.length cmps)
+             ok true
+             i 0]
+      (while-do (and ok (Int.< i n))
+        (unless (cmp-satisfies? (Array.unsafe-nth cmps i) v) (set! ok false))
+        (set! i (Int.inc i)))
+      (and ok (prerelease-ok? cmps v))))
+
+  (doc satisfies? "returns whether the version `v` satisfies the range `r`.
+
+Comparisons follow SemVer 2.0.0 precedence. Following node-semver's default,
+a pre-release version (e.g. `1.2.3-beta`) satisfies the range only when some
+comparator explicitly names a pre-release at the same `major.minor.patch`.")
+  (defn satisfies? [r v]
+    (let-do [sets (Range.sets r)
+             n (Array.length sets)
+             ok false
+             i 0]
+      (while-do (and (not ok) (Int.< i n))
+        (when (set-satisfies? (Array.unsafe-nth sets i) v) (set! ok true))
+        (set! i (Int.inc i)))
+      ok)))
+
+(defmodule Comparator
+  (defn- op-str [op]
+    (match-ref op
+      (SemverOp.Lt) @"<"
+      (SemverOp.Lte) @"<="
+      (SemverOp.Gt) @">"
+      (SemverOp.Gte) @">="
+      (SemverOp.Eq) @"="))
+
+  (doc str "renders a comparator, e.g. `>=1.2.3`.")
+  (defn str [c]
+    (String.append &(op-str (Comparator.op c)) &(Semver.str (Comparator.ver c))))
+  (implements str Comparator.str))
+
+(defmodule ComparatorSet
+  (doc str "renders a comparator set, its comparators joined by spaces.")
+  (defn str [cs]
+    (let-do [cmps (ComparatorSet.comparators cs)
+             n (Array.length cmps)
+             acc @""
+             i 0]
+      (while-do (Int.< i n)
+        (when (Int.> i 0) (set! acc (String.append &acc " ")))
+        (set! acc
+              (String.append &acc &(Comparator.str (Array.unsafe-nth cmps i))))
+        (set! i (Int.inc i)))
+      acc))
+  (implements str ComparatorSet.str))
+
+(defmodule Range
+  (doc str "renders a range back to string form; comparator sets are joined by
+` || `. The output is normalized and may differ from the parsed input.")
+  (defn str [r]
+    (let-do [sets (Range.sets r)
+             n (Array.length sets)
+             acc @""
+             i 0]
+      (while-do (Int.< i n)
+        (when (Int.> i 0) (set! acc (String.append &acc " || ")))
+        (set! acc
+              (String.append &acc &(ComparatorSet.str (Array.unsafe-nth sets i))))
+        (set! i (Int.inc i)))
+      acc))
+  (implements str Range.str))
