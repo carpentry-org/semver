@@ -553,9 +553,9 @@ comparator explicitly names a pre-release at the same `major.minor.patch`.")
       (while-do (and (not ok) (Int.< i n))
         (when (set-satisfies? (Array.unsafe-nth sets i) v) (set! ok true))
         (set! i (Int.inc i)))
-      ok))
+      ok)))
 
-  ; --- rendering ---
+(defmodule Comparator
   (defn- op-str [op]
     (match-ref op
       (SemverOp.Lt) @"<"
@@ -564,21 +564,9 @@ comparator explicitly names a pre-release at the same `major.minor.patch`.")
       (SemverOp.Gte) @">="
       (SemverOp.Eq) @"="))
 
-  (defn- join-strs [parts sep]
-    (let-do [n (Array.length parts)
-             acc @""
-             i 0]
-      (while-do (Int.< i n)
-        (when (Int.> i 0) (set! acc (String.append &acc sep)))
-        (set! acc (String.append &acc (Array.unsafe-nth parts i)))
-        (set! i (Int.inc i)))
-      acc)))
-
-(defmodule Comparator
   (doc str "renders a comparator, e.g. `>=1.2.3`.")
   (defn str [c]
-    (String.append &(Range.op-str (Comparator.op c))
-                   &(Semver.str (Comparator.ver c))))
+    (String.append &(op-str (Comparator.op c)) &(Semver.str (Comparator.ver c))))
   (implements str Comparator.str))
 
 (defmodule ComparatorSet
@@ -586,13 +574,14 @@ comparator explicitly names a pre-release at the same `major.minor.patch`.")
   (defn str [cs]
     (let-do [cmps (ComparatorSet.comparators cs)
              n (Array.length cmps)
-             parts []
+             acc @""
              i 0]
       (while-do (Int.< i n)
-        (set! parts
-              (Array.push-back parts (Comparator.str (Array.unsafe-nth cmps i))))
+        (when (Int.> i 0) (set! acc (String.append &acc " ")))
+        (set! acc
+              (String.append &acc &(Comparator.str (Array.unsafe-nth cmps i))))
         (set! i (Int.inc i)))
-      (Range.join-strs &parts " ")))
+      acc))
   (implements str ComparatorSet.str))
 
 (defmodule Range
@@ -601,12 +590,12 @@ comparator explicitly names a pre-release at the same `major.minor.patch`.")
   (defn str [r]
     (let-do [sets (Range.sets r)
              n (Array.length sets)
-             parts []
+             acc @""
              i 0]
       (while-do (Int.< i n)
-        (set! parts
-              (Array.push-back parts
-                               (ComparatorSet.str (Array.unsafe-nth sets i))))
+        (when (Int.> i 0) (set! acc (String.append &acc " || ")))
+        (set! acc
+              (String.append &acc &(ComparatorSet.str (Array.unsafe-nth sets i))))
         (set! i (Int.inc i)))
-      (Range.join-strs &parts " || ")))
+      acc))
   (implements str Range.str))
