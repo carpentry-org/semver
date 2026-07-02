@@ -22,6 +22,21 @@
                                 Semver
                             </a>
                         </li>
+                        <li>
+                            <a href="Range.html">
+                                Range
+                            </a>
+                        </li>
+                        <li>
+                            <a href="Comparator.html">
+                                Comparator
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ComparatorSet.html">
+                                ComparatorSet
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -54,7 +69,11 @@ optionally have a tag.</p>
                         (&lt; a b)
                     </pre>
                     <p class="doc">
-                        
+                        <p>compares two semantic versions for precedence per SemVer 2.0.0 §11:
+major, minor, and patch numerically, then — when those are equal — by
+pre-release tag. A version with a pre-release tag (e.g. <code>1.0.0-rc.1</code>) has lower
+precedence than the corresponding release (<code>1.0.0</code>). Build metadata is ignored.</p>
+
                     </p>
                 </div>
                 <div class="binder">
@@ -421,16 +440,16 @@ optionally have a tag.</p>
                         </h3>
                     </a>
                     <div class="description">
-                        instantiate
+                        defn
                     </div>
                     <p class="sig">
                         (Fn [(Ref Semver a)] String)
                     </p>
-                    <span>
-                        
-                    </span>
+                    <pre class="args">
+                        (str s)
+                    </pre>
                     <p class="doc">
-                        <p>converts a <code>Semver</code> to a string.</p>
+                        <p>converts a semantic version to a string, e.g. <code>1.2.3</code> or <code>1.2.3-tag</code>.</p>
 
                     </p>
                 </div>

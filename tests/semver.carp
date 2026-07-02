@@ -8,6 +8,24 @@
 
 (defn pre [maj min pat tag] (Semver.init maj min pat (Maybe.Just @tag)))
 
+; parses a range and a version and reports whether the version satisfies it;
+; a parse failure on either side counts as "does not satisfy".
+(defn sat [rs vs]
+  (match (Range.from-string rs)
+    (Maybe.Nothing) false
+    (Maybe.Just r)
+      (match (Semver.from-string vs)
+        (Maybe.Nothing) false
+        (Maybe.Just v) (Range.satisfies? &r &v))))
+
+(defn rng-str [rs]
+  (match (Range.from-string rs)
+    (Maybe.Nothing) @"<parse-error>"
+    (Maybe.Just r) (Range.str &r)))
+
+(defn rng-parses? [rs]
+  (match (Range.from-string rs) (Maybe.Nothing) false (Maybe.Just _) true))
+
 (deftest test
   (assert-op test
              &(Semver.init 1 2 3 (Maybe.Just @"-tag"))
@@ -154,4 +172,150 @@
     "build metadata does not affect precedence (backward)")
   (assert-false test
     (< &(Semver.init 1 0 0 (Maybe.Just @"+build")) &(rel 1 0 0))
-    "build-only metadata has the same precedence as the bare release"))
+    "build-only metadata has the same precedence as the bare release")
+
+  ; ---- version ranges (Range) ----
+  ; caret ranges
+  (assert-true test (sat "^1.2.3" "1.2.3") "caret includes its lower bound")
+  (assert-true test (sat "^1.2.3" "1.9.0") "caret allows minor/patch bumps")
+  (assert-false test (sat "^1.2.3" "1.2.2") "caret excludes lower versions")
+  (assert-false test (sat "^1.2.3" "2.0.0") "caret stops before the next major")
+  (assert-true test (sat "^0.2.3" "0.2.9") "caret on 0.x is locked to the minor")
+  (assert-false test
+    (sat "^0.2.3" "0.3.0")
+    "caret on 0.x stops at the next minor")
+  (assert-true test
+    (sat "^0.0.3" "0.0.3")
+    "caret on 0.0.x is locked to the patch")
+  (assert-false test
+    (sat "^0.0.3" "0.0.4")
+    "caret on 0.0.x stops at the next patch")
+  ; tilde ranges
+  (assert-true test (sat "~1.2.3" "1.2.9") "tilde allows patch bumps")
+  (assert-false test (sat "~1.2.3" "1.3.0") "tilde stops at the next minor")
+  (assert-false test (sat "~1.2.3" "1.2.2") "tilde excludes lower versions")
+  (assert-true test (sat "~1.2" "1.2.5") "tilde on major.minor allows patches")
+  (assert-false test
+    (sat "~1.2" "1.3.0")
+    "tilde on major.minor stops at next minor")
+  (assert-true test
+    (sat "~1" "1.9.9")
+    "tilde on major only allows the whole minor range")
+  (assert-false test
+    (sat "~1" "2.0.0")
+    "tilde on major only stops at the next major")
+  ; explicit comparators, joined with AND
+  (assert-true test (sat ">=1.0.0 <2.0.0" "1.5.0") "an AND range matches inside")
+  (assert-false test
+    (sat ">=1.0.0 <2.0.0" "2.0.0")
+    "the upper bound is exclusive")
+  (assert-false test
+    (sat ">=1.0.0 <2.0.0" "0.9.0")
+    "below the lower bound fails")
+  (assert-true test (sat ">1.2.3" "1.2.4") "> is satisfied above")
+  (assert-false test (sat ">1.2.3" "1.2.3") "> is not satisfied at equality")
+  (assert-true test (sat "<=1.2.3" "1.2.3") "<= is satisfied at equality")
+  (assert-true test
+    (sat ">= 1.2.3" "1.5.0")
+    "a space between operator and version is allowed")
+  ; operator combined with an x-range
+  (assert-true test
+    (sat ">1" "2.0.0")
+    "> on a major-only x-range means the next major")
+  (assert-false test
+    (sat ">1" "1.9.9")
+    "> on a major-only x-range excludes that major")
+  ; exact versions and x-ranges
+  (assert-true test (sat "1.2.3" "1.2.3") "a bare version is an exact match")
+  (assert-false test
+    (sat "1.2.3" "1.2.4")
+    "a bare version does not match its neighbours")
+  (assert-true test
+    (sat "1.2.x" "1.2.9")
+    "an x in the patch matches the whole minor")
+  (assert-false test
+    (sat "1.2.x" "1.3.0")
+    "an x in the patch stops at the next minor")
+  (assert-true test
+    (sat "1.x" "1.9.9")
+    "an x in the minor matches the whole major")
+  (assert-false test
+    (sat "1.x" "2.0.0")
+    "an x in the minor stops at the next major")
+  (assert-true test (sat "*" "9.9.9") "star matches anything")
+  (assert-true test (sat "" "1.2.3") "the empty range matches anything")
+  ; OR alternation
+  (assert-true test
+    (sat "^1.0.0 || ^2.0.0" "1.5.0")
+    "OR matches the left alternative")
+  (assert-true test
+    (sat "^1.0.0 || ^2.0.0" "2.3.0")
+    "OR matches the right alternative")
+  (assert-false test
+    (sat "^1.0.0 || ^2.0.0" "3.0.0")
+    "OR fails when neither matches")
+  ; hyphen ranges (inclusive both ends)
+  (assert-true test
+    (sat "1.2.3 - 2.3.4" "1.2.3")
+    "hyphen includes the lower bound")
+  (assert-true test
+    (sat "1.2.3 - 2.3.4" "2.3.4")
+    "hyphen includes the upper bound")
+  (assert-false test
+    (sat "1.2.3 - 2.3.4" "2.3.5")
+    "hyphen excludes above the upper bound")
+  (assert-false test
+    (sat "1.2.3 - 2.3.4" "1.2.2")
+    "hyphen excludes below the lower bound")
+  (assert-true test
+    (sat "1.2 - 2.3" "2.3.9")
+    "a partial hyphen upper spans the whole minor")
+  (assert-false test
+    (sat "1.2 - 2.3" "2.4.0")
+    "a partial hyphen upper stops at the next minor")
+  ; pre-release handling (node-semver default)
+  (assert-false test
+    (sat "^1.2.3" "2.0.0-beta.1")
+    "a pre-release at a different tuple does not satisfy a stable range")
+  (assert-true test
+    (sat "^1.2.3-alpha.1" "1.2.3-alpha.2")
+    "a pre-release satisfies a range that opts into the same tuple")
+  (assert-false test
+    (sat "^1.2.3-alpha.1" "1.2.3-alpha.0")
+    "a lower pre-release identifier is excluded")
+  (assert-true test
+    (sat "^1.2.3-alpha.1" "1.2.4")
+    "a stable version still satisfies a pre-release range")
+  (assert-false test
+    (sat ">=1.0.0" "2.0.0-beta")
+    "a stable comparator does not admit an unrelated pre-release")
+  ; malformed input is rejected
+  (assert-false test (rng-parses? "not-a-range") "garbage does not parse")
+  (assert-false test
+    (rng-parses? ">=abc")
+    "a non-numeric version does not parse")
+  (assert-false test
+    (rng-parses? "1.2.3.4")
+    "too many components does not parse")
+  ; str renders a normalized form
+  (assert-equal test
+    ">=1.2.3 <2.0.0"
+    &(rng-str "^1.2.3")
+    "caret renders to comparators")
+  (assert-equal test
+    "=1.2.3"
+    &(rng-str "1.2.3")
+    "an exact version renders with =")
+  (assert-equal test
+    ">=1.0.0 <2.0.0"
+    &(rng-str "1.x")
+    "an x-range renders to comparators")
+  (assert-equal test ">=0.0.0" &(rng-str "*") "star renders to >=0.0.0")
+  (assert-equal test
+    ">=1.2.3 <1.3.0"
+    &(rng-str "~1.2.3")
+    "tilde renders to comparators")
+  (assert-equal test
+    ">=1.0.0 <2.0.0 || >=2.0.0 <3.0.0"
+    &(rng-str "^1.0.0 || ^2.0.0")
+    "OR renders both sets"))
