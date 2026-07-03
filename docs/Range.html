@@ -145,6 +145,49 @@ satisfies.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#max-satisfying">
+                        <h3 id="max-satisfying">
+                            max-satisfying
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Ref (Array Semver) a)] (Maybe Semver))
+                    </p>
+                    <pre class="args">
+                        (max-satisfying r versions)
+                    </pre>
+                    <p class="doc">
+                        <p>returns the highest-precedence version in <code>versions</code> that
+satisfies the range <code>r</code>, or <code>Nothing</code> when none of them do. This is the version
+a dependency resolver picks for <code>r</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#min-satisfying">
+                        <h3 id="min-satisfying">
+                            min-satisfying
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Ref (Array Semver) a)] (Maybe Semver))
+                    </p>
+                    <pre class="args">
+                        (min-satisfying r versions)
+                    </pre>
+                    <p class="doc">
+                        <p>returns the lowest-precedence version in <code>versions</code> that
+satisfies the range <code>r</code>, or <code>Nothing</code> when none of them do.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#prn">
                         <h3 id="prn">
                             prn
@@ -184,6 +227,29 @@ satisfies.</p>
 <p>Comparisons follow SemVer 2.0.0 precedence. Following node-semver's default,
 a pre-release version (e.g. <code>1.2.3-beta</code>) satisfies the range only when some
 comparator explicitly names a pre-release at the same <code>major.minor.patch</code>.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#satisfying">
+                        <h3 id="satisfying">
+                            satisfying
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Ref (Array Semver) a)] (Array Semver))
+                    </p>
+                    <pre class="args">
+                        (satisfying r versions)
+                    </pre>
+                    <p class="doc">
+                        <p>returns every version in <code>versions</code> that satisfies the range
+<code>r</code>, sorted ascending by SemVer precedence. The result is empty when none match;
+its last element, when present, is the version <a href="#max-satisfying">max-satisfying</a>
+returns, and its first the version <a href="#min-satisfying">min-satisfying</a> returns.</p>
 
                     </p>
                 </div>

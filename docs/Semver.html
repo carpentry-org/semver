@@ -115,6 +115,28 @@ precedence than the corresponding release (<code>1.0.0</code>). Build metadata i
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#compare">
+                        <h3 id="compare">
+                            compare
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Semver a), (Ref Semver a)] Int)
+                    </p>
+                    <pre class="args">
+                        (compare a b)
+                    </pre>
+                    <p class="doc">
+                        <p>compares two versions under SemVer 2.0.0 precedence, returning
+<code>-1</code> when <code>a</code> ranks below <code>b</code>, <code>1</code> when it ranks above, and <code>0</code> when the two are
+of equal precedence. Handy as an explicit three-way comparator.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#copy">
                         <h3 id="copy">
                             copy
