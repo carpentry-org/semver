@@ -231,6 +231,29 @@ comparator explicitly names a pre-release at the same <code>major.minor.patch</c
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#satisfying">
+                        <h3 id="satisfying">
+                            satisfying
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Range a), (Ref (Array Semver) a)] (Array Semver))
+                    </p>
+                    <pre class="args">
+                        (satisfying r versions)
+                    </pre>
+                    <p class="doc">
+                        <p>returns every version in <code>versions</code> that satisfies the range
+<code>r</code>, sorted ascending by SemVer precedence. The result is empty when none match;
+its last element, when present, is the version <a href="#max-satisfying">max-satisfying</a>
+returns, and its first the version <a href="#min-satisfying">min-satisfying</a> returns.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#set-sets">
                         <h3 id="set-sets">
                             set-sets

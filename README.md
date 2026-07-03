@@ -65,7 +65,9 @@ normalized comparator form.
 Given a set of available versions, `Range.max-satisfying` and
 `Range.min-satisfying` pick the highest and lowest version that satisfies a
 range — the core operation a dependency resolver performs. Both return a
-`Maybe`, since nothing may match.
+`Maybe`, since nothing may match. When you want the full candidate list rather
+than a single end, `Range.satisfying` returns every matching version, sorted
+ascending by precedence (an empty array when none match).
 
 ```clojure
 (let [available [(Semver.init 1 2 0 (Maybe.Nothing))

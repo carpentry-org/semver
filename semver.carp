@@ -634,4 +634,19 @@ a dependency resolver picks for `r`.")
 
   (doc min-satisfying "returns the lowest-precedence version in `versions` that
 satisfies the range `r`, or `Nothing` when none of them do.")
-  (defn min-satisfying [r versions] (resolve-satisfying r versions true)))
+  (defn min-satisfying [r versions] (resolve-satisfying r versions true))
+
+  (doc satisfying "returns every version in `versions` that satisfies the range
+`r`, sorted ascending by SemVer precedence. The result is empty when none match;
+its last element, when present, is the version [max-satisfying](#max-satisfying)
+returns, and its first the version [min-satisfying](#min-satisfying) returns.")
+  (defn satisfying [r versions]
+    (let-do [matching []
+             n (Array.length versions)
+             i 0]
+      (while-do (Int.< i n)
+        (let [v (Array.unsafe-nth versions i)]
+          (when (Range.satisfies? r v)
+            (set! matching (Array.push-back matching @v))))
+        (set! i (Int.inc i)))
+      (Array.sorted &matching))))
