@@ -60,6 +60,26 @@ comparator explicitly opts into a pre-release at the same `major.minor.patch`,
 so `2.0.0-beta` does not satisfy `^1.2.3`. `Range.str` renders a range back to a
 normalized comparator form.
 
+## Resolving versions
+
+Given a set of available versions, `Range.max-satisfying` and
+`Range.min-satisfying` pick the highest and lowest version that satisfies a
+range — the core operation a dependency resolver performs. Both return a
+`Maybe`, since nothing may match.
+
+```clojure
+(let [available [(Semver.init 1 2 0 (Maybe.Nothing))
+                 (Semver.init 1 4 2 (Maybe.Nothing))
+                 (Semver.init 2 0 0 (Maybe.Nothing))]]
+  (match (Range.from-string "^1.2.0")
+    (Maybe.Just r) (Range.max-satisfying &r &available) ; => (Just 1.4.2)
+    (Maybe.Nothing) (Maybe.Nothing)))
+```
+
+`Semver.compare` gives an explicit three-way comparison (`-1`/`0`/`1`), and
+because `Semver` implements `<`/`>` an array of versions can be ordered directly
+with `Array.sorted`.
+
 <hr/>
 
 Have fun!

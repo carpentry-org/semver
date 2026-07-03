@@ -131,6 +131,11 @@ precedence than the corresponding release (`1.0.0`). Build metadata is ignored."
   (defn > [a b] (< b a))
   (implements > Semver.>)
 
+  (doc compare "compares two versions under SemVer 2.0.0 precedence, returning
+`-1` when `a` ranks below `b`, `1` when it ranks above, and `0` when the two are
+of equal precedence. Handy as an explicit three-way comparator.")
+  (defn compare [a b] (cond (Semver.< a b) -1 (Semver.< b a) 1 0))
+
   (doc str
     "converts a semantic version to a string, e.g. `1.2.3` or `1.2.3-tag`.")
   (defn str [s]
@@ -599,3 +604,34 @@ comparator explicitly names a pre-release at the same `major.minor.patch`.")
         (set! i (Int.inc i)))
       acc))
   (implements str Range.str))
+
+; ------------------------------------------------------------------
+; Version resolution
+; ------------------------------------------------------------------
+
+(defmodule Range
+  ; scans `versions` once, keeping the best satisfying version under SemVer
+  ; precedence; `prefer-lower` selects the minimum instead of the maximum.
+  (defn- resolve-satisfying [r versions prefer-lower]
+    (let-do [best (Maybe.Nothing)
+             n (Array.length versions)
+             i 0]
+      (while-do (Int.< i n)
+        (let [v (Array.unsafe-nth versions i)]
+          (when (Range.satisfies? r v)
+            (let [replace (match-ref &best
+                    (Maybe.Nothing) true
+                    (Maybe.Just b)
+                      (if prefer-lower (Semver.< v b) (Semver.< b v)))]
+              (when replace (set! best (Maybe.Just @v))))))
+        (set! i (Int.inc i)))
+      best))
+
+  (doc max-satisfying "returns the highest-precedence version in `versions` that
+satisfies the range `r`, or `Nothing` when none of them do. This is the version
+a dependency resolver picks for `r`.")
+  (defn max-satisfying [r versions] (resolve-satisfying r versions false))
+
+  (doc min-satisfying "returns the lowest-precedence version in `versions` that
+satisfies the range `r`, or `Nothing` when none of them do.")
+  (defn min-satisfying [r versions] (resolve-satisfying r versions true)))
