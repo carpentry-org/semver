@@ -12,7 +12,7 @@ optionally have a tag.
 ## Installation
 
 ```
-(load \"https://github.com/carpentry-org/semver@0.0.7\")
+(load \"https://github.com/carpentry-org/semver@0.1.0\")
 ```")
 (defmodule Semver
   (defn from-string [s]
