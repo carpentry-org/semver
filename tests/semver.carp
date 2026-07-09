@@ -137,6 +137,26 @@
     &(Semver.from-string "a.b.c")
     "from-string returns Nothing for non-numeric input")
   (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "1.2.3.4")
+    "from-string rejects a fourth component instead of reading it as tag .4")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "1.2.3.4.5")
+    "from-string rejects any number of extra version components")
+  (assert-equal test
+    &(Maybe.Nothing)
+    &(Semver.from-string "1.2.3alpha")
+    "from-string rejects a pre-release that lacks a leading dash")
+  (assert-equal test
+    &(Maybe.Just (Semver.init 1 2 3 (Maybe.Just @"-alpha.1")))
+    &(Semver.from-string "1.2.3-alpha.1")
+    "from-string keeps dotted pre-release identifiers")
+  (assert-equal test
+    &(Maybe.Just (Semver.init 1 2 3 (Maybe.Just @"+build")))
+    &(Semver.from-string "1.2.3+build")
+    "from-string keeps build metadata after a plus")
+  (assert-equal test
     &(Semver.init 0 0 0 (Maybe.Nothing))
     &(zero)
     "semantic versions can be created by zero")

@@ -22,14 +22,22 @@ optionally have a tag.
             minor (Int.from-string (Array.unsafe-nth &split 1))
             trail (join "." &(Array.suffix &split 2))
             idx (Pattern.find #"[^0-9]" &trail)
+            ; a tag, if present, must start with `-` (pre-release) or `+` (build);
+            ; any other non-digit after the patch (e.g. a `.`) means extra version
+            ; components, so `1.2.3.4` is rejected rather than read as tag `.4`.
+            valid-tag (or (= idx -1)
+                          (let [sep (String.char-at &trail idx)]
+                            (or (Char.= sep \-) (Char.= sep \+))))
             patch-str (if (> idx -1) (prefix &trail idx) @&trail)
             patch (Int.from-string &patch-str)
             tag (if (> idx -1) (Maybe.Just (suffix &trail idx)) (Maybe.Nothing))]
-        (Maybe.zip
-          &(fn [maj min pat] (Semver.init maj min pat @&tag))
-          major
-          minor
-          patch))
+        (if valid-tag
+          (Maybe.zip
+            &(fn [maj min pat] (Semver.init maj min pat @&tag))
+            major
+            minor
+            patch)
+          (Maybe.Nothing)))
       (Maybe.Nothing)))
   (implements from-string Semver.from-string)
 
