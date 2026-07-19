@@ -447,4 +447,76 @@
   (assert-equal test
     &(the (Array Semver) [])
     &(sat-all "*" &(the (Array Semver) []))
-    "satisfying of an empty candidate list is empty"))
+    "satisfying of an empty candidate list is empty")
+
+  ; --- version increments ---
+  (assert-equal test
+    &(rel 1 2 4)
+    &(inc-patch &(rel 1 2 3))
+    "inc-patch bumps the patch of a release")
+  (assert-equal test
+    &(rel 1 3 0)
+    &(inc-minor &(rel 1 2 3))
+    "inc-minor bumps the minor and resets the patch")
+  (assert-equal test
+    &(rel 2 0 0)
+    &(inc-major &(rel 1 2 3))
+    "inc-major bumps the major and resets minor and patch")
+  (assert-equal test
+    &(rel 1 3 0)
+    &(inc-minor &(rel 1 2 0))
+    "inc-minor bumps a release whose patch is already zero")
+  (assert-equal test
+    &(rel 3 0 0)
+    &(inc-major &(rel 2 0 0))
+    "inc-major bumps a release whose minor and patch are already zero")
+  ; a pre-release of X.Y.Z is only released when the bump would land on X.Y.Z
+  (assert-equal test
+    &(rel 1 2 3)
+    &(inc-patch &(pre 1 2 3 "-alpha.1"))
+    "inc-patch releases a pre-release instead of bumping it")
+  (assert-equal test
+    &(rel 1 2 0)
+    &(inc-minor &(pre 1 2 0 "-alpha"))
+    "inc-minor releases a pre-release of a minor release")
+  (assert-equal test
+    &(rel 1 3 0)
+    &(inc-minor &(pre 1 2 3 "-alpha"))
+    "inc-minor bumps a pre-release of a patch release")
+  (assert-equal test
+    &(rel 2 0 0)
+    &(inc-minor &(pre 2 0 0 "-rc.1"))
+    "inc-minor releases a pre-release whose patch is zero, keeping the minor")
+  (assert-equal test
+    &(rel 2 0 0)
+    &(inc-major &(pre 2 0 0 "-rc.1"))
+    "inc-major releases a pre-release of a major release")
+  (assert-equal test
+    &(rel 2 0 0)
+    &(inc-major &(pre 1 2 0 "-alpha"))
+    "inc-major bumps a pre-release of a minor release")
+  (assert-equal test
+    &(rel 2 0 0)
+    &(inc-major &(pre 1 0 3 "-alpha"))
+    "inc-major bumps a pre-release of a patch release")
+  ; build metadata is not a pre-release (SemVer 2.0.0 §10)
+  (assert-equal test
+    &(rel 1 2 4)
+    &(inc-patch &(Semver.init 1 2 3 (Maybe.Just @"+build.5")))
+    "inc-patch bumps a build-only version rather than releasing it")
+  (assert-equal test
+    &(rel 1 3 0)
+    &(inc-minor &(Semver.init 1 2 0 (Maybe.Just @"+build.5")))
+    "inc-minor bumps a build-only version rather than releasing it")
+  (assert-equal test
+    &(rel 3 0 0)
+    &(inc-major &(Semver.init 2 0 0 (Maybe.Just @"+build.5")))
+    "inc-major bumps a build-only version rather than releasing it")
+  (assert-equal test
+    &(rel 1 2 3)
+    &(inc-patch &(pre 1 2 3 "-alpha.1+build.5"))
+    "inc-patch drops build metadata along with the pre-release")
+  (assert-true test
+    (Maybe.nothing?
+      (tag &(inc-minor &(Semver.init 1 2 3 (Maybe.Just @"+build")))))
+    "a bumped version carries no tag"))
