@@ -172,7 +172,7 @@ A pre-release of a major release is only released rather than bumped, so
 is a pre-release of `1.2.0` rather than of `1.0.0`. The result never carries a
 tag.")
   (defn inc-major [s]
-    (if (and (pre-release? s) (and (Int.= @(minor s) 0) (Int.= @(patch s) 0)))
+    (if (and (pre-release? s) (Int.= @(minor s) 0) (Int.= @(patch s) 0))
       (Semver.init @(major s) 0 0 (Maybe.Nothing))
       (Semver.init (Int.inc @(major s)) 0 0 (Maybe.Nothing))))
 
