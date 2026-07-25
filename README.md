@@ -29,6 +29,31 @@ field (numeric identifiers numerically, and below alphanumeric ones); and build
 metadata is ignored. Equality (`=`) remains structural and compares the tag
 verbatim.
 
+## Incrementing versions
+
+`Semver.inc-major`, `Semver.inc-minor`, and `Semver.inc-patch` bump a version to
+the next release, resetting the components below the one they bump and dropping
+any tag.
+
+```clojure
+(Semver.inc-patch &(Semver.init 1 2 3 (Maybe.Nothing))) ; => 1.2.4
+(Semver.inc-minor &(Semver.init 1 2 3 (Maybe.Nothing))) ; => 1.3.0
+(Semver.inc-major &(Semver.init 1 2 3 (Maybe.Nothing))) ; => 2.0.0
+```
+
+Pre-releases follow node-semver's convention: because `1.2.3-alpha.1` is a
+pre-release *of* `1.2.3`, a bump that would land on `1.2.3` merely releases it.
+
+| Version       | `inc-patch` | `inc-minor` | `inc-major` |
+|---------------|-------------|-------------|-------------|
+| `1.2.3`       | `1.2.4`     | `1.3.0`     | `2.0.0`     |
+| `1.2.3-alpha` | `1.2.3`     | `1.3.0`     | `2.0.0`     |
+| `1.2.0-alpha` | `1.2.0`     | `1.2.0`     | `2.0.0`     |
+| `2.0.0-rc.1`  | `2.0.0`     | `2.0.0`     | `2.0.0`     |
+
+Build metadata is not a pre-release, so `1.2.3+build.5` increments to `1.2.4`
+like any other release.
+
 ## Version ranges
 
 A `Range` is a version requirement of the kind found in package manifests. Parse

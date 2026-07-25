@@ -196,6 +196,81 @@ of equal precedence. Handy as an explicit three-way comparator.</p>
                     </p>
                 </div>
                 <div class="binder">
+                    <a class="anchor" href="#inc-major">
+                        <h3 id="inc-major">
+                            inc-major
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Semver a)] Semver)
+                    </p>
+                    <pre class="args">
+                        (inc-major s)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>s</code> with its major version incremented and its minor
+and patch reset, e.g. <code>1.2.3</code> becomes <code>2.0.0</code>.</p>
+<p>A pre-release of a major release is only released rather than bumped, so
+<code>2.0.0-rc.1</code> becomes <code>2.0.0</code> — but <code>1.2.0-alpha</code> still becomes <code>2.0.0</code>, since it
+is a pre-release of <code>1.2.0</code> rather than of <code>1.0.0</code>. The result never carries a
+tag.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#inc-minor">
+                        <h3 id="inc-minor">
+                            inc-minor
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Semver a)] Semver)
+                    </p>
+                    <pre class="args">
+                        (inc-minor s)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>s</code> with its minor version incremented and its patch
+reset, e.g. <code>1.2.3</code> becomes <code>1.3.0</code>.</p>
+<p>A pre-release of a minor release is only released rather than bumped, so
+<code>1.2.0-alpha</code> becomes <code>1.2.0</code> — but <code>1.2.3-alpha</code> still becomes <code>1.3.0</code>, since it
+is a pre-release of <code>1.2.3</code> rather than of <code>1.2.0</code>. The result never carries a
+tag.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
+                    <a class="anchor" href="#inc-patch">
+                        <h3 id="inc-patch">
+                            inc-patch
+                        </h3>
+                    </a>
+                    <div class="description">
+                        defn
+                    </div>
+                    <p class="sig">
+                        (Fn [(Ref Semver a)] Semver)
+                    </p>
+                    <pre class="args">
+                        (inc-patch s)
+                    </pre>
+                    <p class="doc">
+                        <p>returns <code>s</code> with its patch version incremented, e.g. <code>1.2.3</code>
+becomes <code>1.2.4</code>.</p>
+<p>Since <code>1.2.3-alpha.1</code> is a pre-release <em>of</em> <code>1.2.3</code>, incrementing the patch of a
+pre-release only releases it, yielding <code>1.2.3</code>. Build metadata is not a
+pre-release, so <code>1.2.3+build.5</code> still becomes <code>1.2.4</code>. The result never carries a
+tag.</p>
+
+                    </p>
+                </div>
+                <div class="binder">
                     <a class="anchor" href="#init">
                         <h3 id="init">
                             init
