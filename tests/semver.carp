@@ -1,5 +1,8 @@
 (load "Test.carp")
 
+; a scope that already uses core modules must not make semver's calls ambiguous
+(use-all Array Int Maybe)
+
 (load "semver.carp")
 
 (use-all Semver Test)
