@@ -16,15 +16,17 @@ optionally have a tag.
 ```")
 (defmodule Semver
   (defn from-string [s]
-    (if (> (count-char s \.) 1)
-      (let [split (split-by s &[\.])
+    (if (> (String.count-char s \.) 1)
+      (let [split (String.split-by s &[\.])
             major (Int.from-string (Array.unsafe-nth &split 0))
             minor (Int.from-string (Array.unsafe-nth &split 1))
-            trail (join "." &(Array.suffix &split 2))
+            trail (String.join "." &(Array.suffix &split 2))
             idx (Pattern.find #"[^0-9]" &trail)
-            patch-str (if (> idx -1) (prefix &trail idx) @&trail)
+            patch-str (if (> idx -1) (String.prefix &trail idx) @&trail)
             patch (Int.from-string &patch-str)
-            tag (if (> idx -1) (Maybe.Just (suffix &trail idx)) (Maybe.Nothing))]
+            tag (if (> idx -1)
+              (Maybe.Just (String.suffix &trail idx))
+              (Maybe.Nothing))]
         (Maybe.zip
           &(fn [maj min pat] (Semver.init maj min pat @&tag))
           major
@@ -72,8 +74,8 @@ optionally have a tag.
   ; compares two dotted pre-release strings; when every shared identifier is
   ; equal, the version with more identifiers has the higher precedence.
   (defn compare-pre [a b]
-    (let-do [as (split-by a &[\.])
-             bs (split-by b &[\.])
+    (let-do [as (String.split-by a &[\.])
+             bs (String.split-by b &[\.])
              la (Array.length &as)
              lb (Array.length &bs)
              n (if (Int.< la lb) la lb)
@@ -95,10 +97,10 @@ optionally have a tag.
       (Maybe.Nothing) (Maybe.Nothing)
       (Maybe.Just s)
         (let [plus (String.index-of s \+)
-              base (if (Int.< plus 0) @s (prefix s plus))]
+              base (if (Int.< plus 0) @s (String.prefix s plus))]
           (if (and (not (String.empty? &base))
                    (Char.= (String.char-at &base 0) \-))
-            (Maybe.Just (suffix &base 1))
+            (Maybe.Just (String.suffix &base 1))
             (Maybe.Nothing)))))
 
   (hidden compare-tags)
