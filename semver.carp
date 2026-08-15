@@ -97,10 +97,10 @@ optionally have a tag.
       (Maybe.Nothing) (Maybe.Nothing)
       (Maybe.Just s)
         (let [plus (String.index-of s \+)
-              base (if (Int.< plus 0) @s (String.prefix s plus))]
-          (if (and (not (String.empty? &base))
-                   (Char.= (String.char-at &base 0) \-))
-            (Maybe.Just (String.suffix &base 1))
+              base (if (Int.< plus 0) @s (String.byte-slice s 0 plus))
+              n (String.length &base)]
+          (if (and (Int.> n 0) (Char.= (String.char-at &base 0) \-))
+            (Maybe.Just (String.byte-slice &base 1 n))
             (Maybe.Nothing)))))
 
   (hidden compare-tags)
@@ -308,10 +308,10 @@ A leading `v` (as in `v1.2.3`) is accepted and ignored.")
         (let [hy (String.index-of &s \-)
               pl (String.index-of &s \+)
               ts (first-tag-index hy pl)
-              core (if (Int.< ts 0) @&s (String.prefix &s ts))
+              core (if (Int.< ts 0) @&s (String.byte-slice &s 0 ts))
               tag (if (Int.< ts 0)
                 (Maybe.Nothing)
-                (Maybe.Just (String.suffix &s ts)))
+                (Maybe.Just (String.byte-slice &s ts (String.length &s))))
               parts (String.split-by &core &[\.])
               np (Array.length &parts)]
           (if (or (Int.= np 0) (Int.> np 3))
@@ -543,7 +543,7 @@ satisfies.")
       (Maybe.Nothing) false
       (Maybe.Just s)
         (let [plus (String.index-of s \+)
-              base (if (Int.< plus 0) @s (String.prefix s plus))]
+              base (if (Int.< plus 0) @s (String.byte-slice s 0 plus))]
           (and (not (String.empty? &base)) (Char.= (String.char-at &base 0) \-)))))
 
   (defn- cmp-satisfies? [c v]

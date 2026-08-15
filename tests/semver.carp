@@ -29,6 +29,11 @@
 (defn rng-parses? [rs]
   (match (Range.from-string rs) (Maybe.Nothing) false (Maybe.Just _) true))
 
+(defn cmp-parsed [s v]
+  (match (Semver.from-string s)
+    (Maybe.Nothing) (Maybe.Nothing)
+    (Maybe.Just p) (Maybe.Just (Semver.compare &p v))))
+
 ; resolves the highest version in `vs` satisfying the range string `rs`; a parse
 ; failure yields Nothing, matching a range that nothing satisfies.
 (defn mx [rs vs]
@@ -522,4 +527,26 @@
   (assert-true test
     (Maybe.nothing?
       (tag &(inc-minor &(Semver.init 1 2 3 (Maybe.Just @"+build")))))
-    "a bumped version carries no tag"))
+    "a bumped version carries no tag")
+  (assert-equal test
+    &(Maybe.Just (Semver.init 1 2 3 (Maybe.Just @"-é")))
+    &(from-string "1.2.3-é")
+    "a multi-byte tag survives parsing verbatim")
+  (assert-equal test
+    &(Maybe.Just 0)
+    &(cmp-parsed "1.2.3ééé+x" &(rel 1 2 3))
+    "a multi-byte tag that is only build metadata does not lower precedence")
+  (assert-equal test
+    0
+    (Semver.compare &(pre 1 2 3 "-é+xxxx") &(pre 1 2 3 "-é"))
+    "build metadata behind a multi-byte pre-release identifier is ignored")
+  (assert-true test
+    (sat "^1.2.3" "1.2.3ééé+x")
+    "a caret range accepts a version carrying a multi-byte tag")
+  (assert-false test
+    (rng-parses? "ééé-x")
+    "a range whose version core holds multi-byte bytes does not parse")
+  (assert-equal test
+    "=1.2.3-é"
+    &(rng-str "1.2.3-é")
+    "a range keeps a multi-byte pre-release tag verbatim"))
